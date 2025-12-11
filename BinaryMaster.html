@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego Binario Master</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .setup-screen, .game-screen, .winner-screen {
+            display: none;
+        }
+
+        .setup-screen.active, .game-screen.active, .winner-screen.active {
+            display: block;
+        }
+
+        label {
+            display: block;
+            margin: 20px 0 10px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            margin-top: 20px;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .players-inputs {
+            margin-top: 20px;
+        }
+
+        .player-input {
+            margin-bottom: 15px;
+        }
+
+        .binary-display {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 30px 0;
+        }
+
+        .light {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid #333;
+            transition: all 0.3s;
+        }
+
+        .light.on {
+            background: #4ade80;
+            box-shadow: 0 0 20px #4ade80;
+        }
+
+        .light.off {
+            background: #1f2937;
+        }
+
+        .current-player {
+            text-align: center;
+            font-size: 1.5em;
+            color: #667eea;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .answer-input {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .progress-board {
+            margin: 30px 0;
+        }
+
+        .player-progress {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .player-name {
+            min-width: 150px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .progress-bar {
+            flex: 1;
+            display: flex;
+            gap: 5px;
+        }
+
+        .progress-step {
+            flex: 1;
+            height: 30px;
+            background: #e5e7eb;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .progress-step.filled {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .result-message {
+            text-align: center;
+            font-size: 1.2em;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .result-message.correct {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .result-message.incorrect {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .winner-screen {
+            text-align: center;
+        }
+
+        .winner-title {
+            font-size: 3em;
+            color: #667eea;
+            margin: 30px 0;
+            animation: bounce 1s infinite;
+        }
+
+        .winner-names {
+            font-size: 2em;
+            color: #764ba2;
+            margin: 20px 0;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="confetti"></canvas>
+    <div class="container">
+        <h1>🎮 Binario Master 🎮</h1>
+        
+        <!-- Pantalla de configuración -->
+        <div class="setup-screen active" id="setupScreen">
+            <label for="numPlayers">¿Cuántos jugadores? (1-12)</label>
+            <input type="number" id="numPlayers" min="1" max="12" value="2">
+            <button onclick="setupPlayers()">Siguiente</button>
+            
+            <div class="players-inputs" id="playersInputs"></div>
+        </div>
+
+        <!-- Pantalla de juego -->
+        <div class="game-screen" id="gameScreen">
+            <div class="progress-board" id="progressBoard"></div>
+            
+            <div class="current-player" id="currentPlayer"></div>
+            
+            <div class="binary-display" id="binaryDisplay"></div>
+            
+            <div class="answer-input">
+                <input type="number" id="answerInput" placeholder="Escribe el número decimal">
+                <button onclick="checkAnswer()">Responder</button>
+            </div>
+            
+            <div class="result-message" id="resultMessage"></div>
+        </div>
+
+        <!-- Pantalla de ganador -->
+        <div class="winner-screen" id="winnerScreen">
+            <div class="winner-title" id="winnerTitle"></div>
+            <div class="winner-names" id="winnerNames"></div>
+            <button onclick="resetGame()">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script>
+        let players = [];
+        let currentPlayerIndex = 0;
+        let currentBinary = [];
+        let correctAnswer = 0;
+        let roundComplete = false;
+
+        function setupPlayers() {
+            const num = parseInt(document.getElementById('numPlayers').value);
+            if (num < 1 || num > 12) {
+                alert('Por favor, elige entre 1 y 12 jugadores');
+                return;
+            }
+
+            const container = document.getElementById('playersInputs');
+            container.innerHTML = '';
+
+            for (let i = 0; i < num; i++) {
+                const div = document.createElement('div');
+                div.className = 'player-input';
+                div.innerHTML = `
+                    <label>Jugador ${i + 1}</label>
+                    <input type="text" id="player${i}" placeholder="Nombre del jugador ${i + 1}">
+                `;
+                container.appendChild(div);
+            }
+
+            const startButton = document.createElement('button');
+            startButton.textContent = 'Comenzar Juego';
+            startButton.onclick = startGame;
+            container.appendChild(startButton);
+        }
+
+        function startGame() {
+            const num = parseInt(document.getElementById('numPlayers').value);
+            players = [];
+
+            for (let i = 0; i < num; i++) {
+                const name = document.getElementById(`player${i}`).value.trim();
+                if (!name) {
+                    alert(`Por favor, introduce el nombre del jugador ${i + 1}`);
+                    return;
+                }
+                players.push({ name: name, progress: 0 });
+            }
+
+            document.getElementById('setupScreen').classList.remove('active');
+            document.getElementById('gameScreen').classList.add('active');
+
+            updateProgressBoard();
+            nextTurn();
+        }
+
+        function updateProgressBoard() {
+            const board = document.getElementById('progressBoard');
+            board.innerHTML = '';
+
+            players.forEach(player => {
+                const div = document.createElement('div');
+                div.className = 'player-progress';
+                
+                let progressHTML = `<div class="player-name">${player.name}</div><div class="progress-bar">`;
+                for (let i = 0; i <= 10; i++) {
+                    progressHTML += `<div class="progress-step ${i <= player.progress ? 'filled' : ''}">${i}</div>`;
+                }
+                progressHTML += '</div>';
+                
+                div.innerHTML = progressHTML;
+                board.appendChild(div);
+            });
+        }
+
+        function nextTurn() {
+            document.getElementById('resultMessage').textContent = '';
+            document.getElementById('answerInput').value = '';
+            
+            if (currentPlayerIndex >= players.length) {
+                currentPlayerIndex = 0;
+                
+                const winners = players.filter(p => p.progress >= 10);
+                if (winners.length > 0) {
+                    showWinners(winners);
+                    return;
+                }
+            }
+
+            document.getElementById('currentPlayer').textContent = 
+                `Turno de: ${players[currentPlayerIndex].name}`;
+
+            generateBinary();
+        }
+
+        function generateBinary() {
+            currentBinary = [];
+            const display = document.getElementById('binaryDisplay');
+            display.innerHTML = '';
+
+            for (let i = 0; i < 8; i++) {
+                const bit = Math.random() < 0.5 ? 0 : 1;
+                currentBinary.push(bit);
+
+                const light = document.createElement('div');
+                light.className = `light ${bit === 1 ? 'on' : 'off'}`;
+                display.appendChild(light);
+            }
+
+            correctAnswer = parseInt(currentBinary.join(''), 2);
+        }
+
+        function checkAnswer() {
+            const answer = parseInt(document.getElementById('answerInput').value);
+            const resultMsg = document.getElementById('resultMessage');
+
+            if (isNaN(answer)) {
+                alert('Por favor, introduce un número válido');
+                return;
+            }
+
+            if (answer === correctAnswer) {
+                players[currentPlayerIndex].progress++;
+                resultMsg.textContent = `¡Correcto! ${correctAnswer} 🎉`;
+                resultMsg.className = 'result-message correct';
+            } else {
+                resultMsg.textContent = `Incorrecto. La respuesta era ${correctAnswer}`;
+                resultMsg.className = 'result-message incorrect';
+            }
+
+            updateProgressBoard();
+            currentPlayerIndex++;
+
+            setTimeout(() => {
+                nextTurn();
+            }, 2000);
+        }
+
+        function showWinners(winners) {
+            document.getElementById('gameScreen').classList.remove('active');
+            document.getElementById('winnerScreen').classList.add('active');
+
+            if (winners.length === 1) {
+                document.getElementById('winnerTitle').textContent = '🏆 ¡Eres el Binario Master! 🏆';
+                document.getElementById('winnerNames').textContent = winners[0].name;
+            } else {
+                document.getElementById('winnerTitle').textContent = '🏆 ¡Sois los Binarios Másters! 🏆';
+                document.getElementById('winnerNames').textContent = winners.map(w => w.name).join(', ');
+            }
+
+            startConfetti();
+        }
+
+        function resetGame() {
+            players = [];
+            currentPlayerIndex = 0;
+            document.getElementById('winnerScreen').classList.remove('active');
+            document.getElementById('setupScreen').classList.add('active');
+            document.getElementById('playersInputs').innerHTML = '';
+            stopConfetti();
+        }
+
+        // Confetti
+        let confettiInterval;
+        const canvas = document.getElementById('confetti');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const confettiPieces = [];
+
+        function startConfetti() {
+            confettiInterval = setInterval(() => {
+                for (let i = 0; i < 5; i++) {
+                    confettiPieces.push({
+                        x: Math.random() * canvas.width,
+                        y: -10,
+                        size: Math.random() * 10 + 5,
+                        color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+                        speed: Math.random() * 3 + 2,
+                        angle: Math.random() * 360
+                    });
+                }
+            }, 100);
+
+            animateConfetti();
+        }
+
+        function animateConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            confettiPieces.forEach((piece, index) => {
+                piece.y += piece.speed;
+                piece.angle += 2;
+
+                ctx.save();
+                ctx.translate(piece.x, piece.y);
+                ctx.rotate(piece.angle * Math.PI / 180);
+                ctx.fillStyle = piece.color;
+                ctx.fillRect(-piece.size / 2, -piece.size / 2, piece.size, piece.size);
+                ctx.restore();
+
+                if (piece.y > canvas.height) {
+                    confettiPieces.splice(index, 1);
+                }
+            });
+
+            if (document.getElementById('winnerScreen').classList.contains('active')) {
+                requestAnimationFrame(animateConfetti);
+            }
+        }
+
+        function stopConfetti() {
+            clearInterval(confettiInterval);
+            confettiPieces.length = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Permitir responder con Enter
+        document.getElementById('answerInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+    </script>
+</body>
+</html>
